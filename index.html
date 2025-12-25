@@ -386,6 +386,33 @@
 .language-selector {
   display: none !important;
 }
+  
+  @media (max-width: 480px) {
+
+  .atm-container {
+    transform: none;
+    width: 95vw;
+  }
+
+  .cash-output {
+    width: 65%;
+    top: -4px;
+  }
+
+  .currency-note {
+    height: 28px;
+  }
+
+  .receipt-output {
+    width: 55%;
+    font-size: 10px;
+  }
+
+  .receipt-content {
+    padding: 6px;
+  }
+}
+
 </style>
 </head>
 <body>
@@ -1098,4 +1125,5 @@ function processDepositTransaction() {
 })();
 </script>
 </body>
+
 </html>
