@@ -1,0 +1,1101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>ATM Simulation System</title>
+<style>
+  :root {
+    --primary-bg: #1a1f24;
+    --screen-bg: #294f6b;
+    --metal-color: #2a3138;
+    --text-color: #e9eef3;
+    --muted-text: #9fb3c8;
+    --accent-color: #2e8b57;
+    --slot-bg: #537d98;
+    --button-bg: #374151;
+    --paper-white: #f7f7f7;
+    --shadow-dark: rgba(0,0,0,.6);
+    --led-inactive: #38444f;
+    --led-active: #22c55e;
+  }
+
+  * {
+    box-sizing: border-box;
+    user-select: none;
+  }
+
+  body {
+    margin: 0;
+    background: #1f2e3e;
+    color: var(--text-color);
+    font-family: system-ui, -apple-system, Segoe UI, Roboto, "Noto Sans Arabic", Arial, sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 100vh;
+  }
+
+  .atm-container {
+    width: 640px;
+  max-width: 85vw;
+    transform: scale(0.9);
+  transform-origin: top center;
+    background: var(--primary-bg);
+    border-radius: 22px;
+    box-shadow: 0 40px 80px var(--shadow-dark);
+    overflow: hidden;
+    border: 2px solid #283038;
+  }
+
+  .bank-branding {
+    text-align: center;
+    padding: 8px 0;
+    font-weight: 700;
+    color: #c7d2dc;
+    background: #151a1f;
+    border-bottom: 1px solid #20262c;
+    letter-spacing: .3px;
+  }
+
+  .display-section {
+    background: var(--screen-bg);
+    padding: 18px;
+    height: 420px;
+    display: flex;
+    flex-direction: column;
+    
+  }
+
+  .status-bar {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 10px;
+    color: #b9c4cf;
+    font-size: 14px;
+  }
+
+  .language-selector {
+    display: flex;
+    gap: 8px;
+  }
+
+  .language-selector button {
+    background: var(--button-bg);
+    color: var(--text-color);
+    border: none;
+    padding: 8px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-weight: 700;
+  }
+
+  .language-selector button.active {
+    background: var(--accent-color);
+  }
+
+  .status-indicator {
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--led-inactive);
+  }
+
+  .screen-panel {
+   flex: 1;
+  background: #273c51;
+  border: 4px solid #2b323a;
+  border-radius: 10px;
+  padding: 16px;
+  overflow: hidden;
+ position: relative;
+
+  box-shadow:
+    inset 0 0 0 2px #0f1720,
+    inset 0 12px 24px rgba(0,0,0,0.9),
+    0 6px 16px rgba(0,0,0,0.6);
+}
+
+  h2.screen-title {
+    margin: 0 0 8px;
+    font-size: 18px;
+  }
+
+  p.screen-subtitle {
+    margin: 0 0 12px;
+    font-size: 14px;
+    color: #cdd6dd;
+  }
+
+  .option-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 10px;
+    margin-top: 8px;
+  }
+
+  .option-tile, .action-button {
+    background: #0d1217;
+    border: 1px solid #1f2730;
+    border-radius: 10px;
+    padding: 12px;
+    color: var(--text-color);
+    cursor: pointer;
+    transition: .2s;
+    text-align: center;
+    font-weight: 700;
+  }
+
+  .option-tile:hover, .action-button:hover {
+    border-color: var(--accent-color);
+  }
+
+  .action-button.primary {
+    background: var(--accent-color);
+    border-color: var(--accent-color);
+  }
+
+  .navigation-bar {
+    margin-top: 10px;
+    display: flex;
+    gap: 10px;
+    flex-wrap: wrap;
+  }
+
+  #global-button-bar {
+    background: #111416;
+    border-top: 1px solid #222a31;
+    padding: 8px;
+    display: flex;
+    gap: 10px;
+    justify-content: center;
+  }
+
+  .hardware-section {
+    background: var(--metal-color);
+    border-top: 2px solid #222a31;
+    padding: 12px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+  }
+
+  .hardware-module {
+    background: #161b20;
+    border: 1px solid #1f2730;
+    border-radius: 10px;
+    padding: 8px;
+    position: relative;
+  }
+
+  .hardware-module h4 {
+    margin: 0 0 8px;
+    font-size: 12px;
+    color: var(--muted-text);
+  }
+
+  .hardware-slot, .hardware-pad, .hardware-output {
+    background: var(--slot-bg);
+    border: 1px solid #0f1317;
+    border-radius: 6px;
+    height: 34px;
+    box-shadow: inset 0 8px 18px rgba(0,0,0,.6);
+    position: relative;
+  }
+
+  .hardware-slot.active, .hardware-pad.active, .hardware-output.active {
+    box-shadow: inset 0 8px 18px rgba(0,0,0,.6), 0 0 10px 2px rgba(46,139,87,.6);
+  }
+
+
+.hardware-pad {
+  width: 60px;
+  height: 60px;
+  aspect-ratio: 1 / 1;
+  margin: 0 auto;
+}
+
+#fingerprint-scanner {
+  border-radius: 50%;
+}
+
+  .bank-card, .mobile-device, .fingerprint-visual {
+    position: absolute;
+    top: -72px;
+    left: 50%;
+    transform: translateX(-50%);
+    display: none;
+  }
+
+  .bank-card {
+    width: 76px;
+    height: 48px;
+    background: linear-gradient(135deg, #0052d4, #4364f7 55%, #6fb1fc);
+    border-radius: 6px;
+    box-shadow: 0 10px 18px rgba(0,0,0,.4);
+  }
+
+  .card-chip {
+    width: 16px;
+    height: 12px;
+    background: #c2a66b;
+    border-radius: 2px;
+    position: absolute;
+    right: 8px;
+    top: 8px;
+  }
+
+  .card-logo {
+    position: absolute;
+    left: 8px;
+    bottom: 6px;
+    width: 38px;
+    height: 12px;
+    background: rgba(255,255,255,.85);
+    border-radius: 2px;
+  }
+
+  .mobile-device {
+    width: 64px;
+    height: 64px;
+    border-radius: 12px;
+    background: linear-gradient(135deg, #2e8b57, #1f5133);
+    box-shadow: 0 10px 18px rgba(0,0,0,.3);
+  }
+
+  .fingerprint-visual {
+    width: 64px;
+    height: 64px;
+    border-radius: 50%;
+    background: radial-gradient(circle at 50% 50%, #b98787 0%, #20262c 60%);
+    box-shadow: inset 0 8px 18px rgba(0,0,0,.6), 0 10px 18px rgba(0,0,0,.3);
+  }
+
+  .pin-keypad {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 8px;
+  }
+
+  .pin-key {
+    background: linear-gradient(180deg, #0f1419, #111827);
+    border: 1px solid #0a0e12;
+    color: #e5e7eb;
+    font-weight: 700;
+    height: 52px;
+    border-radius: 10px;
+    box-shadow: inset 0 1px 0 rgba(255,255,255,.08), 0 6px 14px rgba(0,0,0,.5);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+  }
+
+  .pin-key.function-key {
+    background: #0a0f13;
+    color: #a7b0bb;
+  }
+
+  .cash-output {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: -6px;
+    width: 220px;
+    height: 0;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    transition: height .6s ease;
+  }
+
+  .currency-note {
+    height: 36px;
+    background: linear-gradient(135deg, #1f5133, #2e8b57);
+    border: 1px solid #183025;
+    border-radius: 4px;
+  }
+
+  .receipt-output {
+    position: absolute;
+    left: 50%;
+    transform: translateX(-50%);
+    top: -6px;
+    width: 200px;
+    height: 0;
+    overflow: hidden;
+    background: var(--paper-white);
+    color: #111827;
+    border: 1px solid #e5e5e5;
+    border-radius: 3px;
+    font-family: "Courier New", monospace;
+    font-size: 12px;
+    transition: height .6s ease;
+  }
+
+  .receipt-content {
+    padding: 8px;
+  }
+
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.6);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 999;
+  }
+
+  .modal-content {
+    background: #111827;
+    border: 1px solid #1f2730;
+    border-radius: 12px;
+    padding: 16px;
+    width: 320px;
+    color: #e9eef3;
+    text-align: center;
+  }
+
+  [dir="rtl"] .screen-panel {
+    text-align: right;
+  }
+
+  [dir="rtl"] .option-grid {
+    direction: rtl;
+  }
+
+  [dir="rtl"] .language-selector {
+    flex-direction: row-reverse;
+  }
+  .screen-center {
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.screen-center .option-grid {
+  width: 320px;
+}
+
+.language-selector {
+  display: none !important;
+}
+</style>
+</head>
+<body>
+<div class="atm-container" id="atm-main">
+  <div class="bank-branding">KUWAIT BANK</div>
+
+  <div class="display-section">
+  <div class="status-bar">
+      <div class="language-selector">
+        <button id="english-btn" class="active">English</button>
+        <button id="arabic-btn">العربية</button>
+      </div>
+      <div style="display:flex; align-items:center; gap:8px;">
+        <div class="status-indicator" id="system-led"></div>
+        <span id="status-message"></span>
+      </div>
+    </div>
+
+    <div class="screen-panel" id="main-screen"></div>
+
+    <div id="global-button-bar">
+      <div class="action-button" id="report-issue-btn">Report Issue</div>
+      <div class="action-button" id="help-btn">Help</div>
+      <div class="action-button" id="call-bank-btn">Call Bank</div>
+    </div>
+  </div>
+
+  <div class="hardware-section" id="hardware-bay">
+    <div class="hardware-module" id="card-reader-module">
+      <h4 id="card-label">Card slot</h4>
+      <div class="hardware-slot" id="card-insertion-slot"></div>
+      <div class="bank-card" id="animated-card">
+        <div class="card-chip"></div>
+        <div class="card-logo"></div>
+      </div>
+    </div>
+    <div class="hardware-module" id="nfc-module">
+      <h4 id="nfc-label">Phone / NFC pad</h4>
+      <div class="hardware-pad" id="nfc-touch-pad"></div>
+    </div>
+    <div class="hardware-module" id="biometric-module">
+      <h4 id="biometric-label">Fingerprint scanner</h4>
+      <div class="hardware-pad" id="fingerprint-scanner"></div>
+    </div>
+    <div class="hardware-module" id="pin-module">
+      <h4 id="pin-label">Pin pad</h4>
+      <div class="pin-keypad" id="pin-entry-pad"></div>
+    </div>
+    <div class="hardware-module" id="receipt-module">
+      <h4 id="receipt-label">Receipt printer</h4>
+      <div class="hardware-output" id="receipt-dispenser">
+        <div class="receipt-output" id="printed-receipt">
+          <div class="receipt-content" id="receipt-text"></div>
+        </div>
+      </div>
+    </div>
+    <div class="hardware-module" id="cash-module">
+      <h4 id="cash-label">Cash dispenser</h4>
+      <div class="hardware-output" id="cash-dispenser">
+        <div class="cash-output" id="dispensed-cash">
+          <div class="currency-note"></div>
+          <div class="currency-note"></div>
+          <div class="currency-note"></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal-overlay" id="call-modal">
+  <div class="modal-content">
+    <h3 id="call-modal-title">Calling bank…</h3>
+    <p id="call-modal-message"></p>
+    <div class="navigation-bar" style="justify-content:center;">
+      <div class="action-button" id="end-call-btn">End</div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function() {
+  const applicationState = {
+    currentLanguage: 'en',
+    currentPhase: 'lang',
+    enteredPin: '',
+    lastTransaction: null
+  };
+
+  // Strings
+  const translations = {
+    en: {
+      //ready: 'Ready',
+      selectLang: 'Select Language',
+      //startPrompt: 'Please choose a language to start',
+      welcome: 'Welcome',
+      chooseAuth: 'Select an authentication method',
+      card: 'Card',
+      phone: 'Phone / NFC',
+      finger: 'Fingerprint',
+      back: 'Back',
+      end: 'End',
+      receiptBtn: 'Receipt',
+      enterPin: 'Enter your PIN',
+      pinHint: 'Use the physical pin pad below',
+      invalidPin: 'Invalid PIN. Try again.',
+      pinOk: 'PIN accepted',
+      txMenu: 'Select a transaction',
+      withdraw: 'Withdraw cash',
+      balance: 'Balance inquiry',
+      deposit: 'Deposit',
+      mini: 'Mini statement',
+      amountPrompt: 'Select amount',
+      custom: 'Custom amount',
+      kd: 'KD',
+      max: 'Maximum 3000 KD',
+      //ejectCash: 'Dispensing cash…',
+      //ejectReceipt: 'Printing receipt…',
+      available: 'Available',
+      depositHint: 'Insert cash into slot (simulated)',
+      askReceipt: 'Do you want a receipt?',
+      yes: 'Yes',
+      no: 'No',
+      thankYou: 'Thank you',
+      done: 'Transaction completed.',
+      cardSlot: 'Card slot',
+      nfcPad: 'Phone / NFC pad',
+      fingerPad: 'Fingerprint scanner',
+      pinPad: 'Pin pad',
+      receiptPrinter: 'Receipt printer',
+      cashDispenser: 'Cash dispenser',
+      gReport: 'Report Issue',
+      gHelp: 'Help',
+      gCall: 'Call Bank',
+      helpLang: 'Choose English or Arabic to start.',
+      helpAuth: 'Select card, phone/NFC, or fingerprint.',
+      helpPin: 'Enter your PIN using the keypad below.',
+      helpTx: 'Choose Withdraw, Balance, Deposit, or Mini statement.',
+      helpAskReceipt: 'Choose Yes to print a receipt, or No to finish.',
+      calling: 'Calling bank…',
+      endCall: 'Call ended.',
+      clear: 'Clear',
+      enter: 'Enter'
+    },
+    ar: {
+     // ready: 'جاهز',
+      selectLang: 'اختر اللغة',
+      //startPrompt: 'اختر اللغة للبدء',
+      welcome: 'مرحباً',
+      chooseAuth: 'اختر طريقة التحقق',
+      card: 'بطاقة',
+      phone: 'هاتف / NFC',
+      finger: 'بصمة',
+      back: 'رجوع',
+      end: 'إنهاء',
+      receiptBtn: 'إيصال',
+      enterPin: 'أدخل الرقم السري',
+      pinHint: 'استخدم لوحة الأرقام أسفل الشاشة',
+      invalidPin: 'رقم سري غير صحيح',
+      pinOk: 'تم قبول الرقم السري',
+      txMenu: 'اختر الخدمة',
+      withdraw: 'سحب نقدي',
+      balance: 'استعلام الرصيد',
+      deposit: 'إيداع',
+      mini: 'كشف مصغر',
+      amountPrompt: 'اختر المبلغ',
+      custom: 'مبلغ آخر',
+      kd: 'د.ك',
+      max: 'الحد الأقصى 3000 د.ك',
+     // ejectCash: 'جاري صرف النقد…',
+     // ejectReceipt: 'جاري طباعة الإيصال…',
+      available: 'المتاح',
+      depositHint: 'أدخل النقد في الفتحة (محاكاة)',
+      askReceipt: 'هل تريد إيصال؟',
+      yes: 'نعم',
+      no: 'لا',
+      thankYou: 'شكراً لك',
+      done: 'تمت العملية.',
+      cardSlot: 'فتحة البطاقة',
+      nfcPad: 'منطقة الهاتف / NFC',
+      fingerPad: 'قارئ البصمة',
+      pinPad: 'لوحة الأرقام',
+      receiptPrinter: 'طابعة الإيصال',
+      cashDispenser: 'ماسورة النقد',
+      gReport: 'الإبلاغ عن مشكلة',
+      gHelp: 'مساعدة',
+      gCall: 'اتصال بالبنك',
+      helpLang: 'اختر الإنجليزية أو العربية للبدء.',
+      helpAuth: 'اختر البطاقة أو الهاتف/NFC أو البصمة.',
+      helpPin: 'أدخل الرقم السري باستخدام لوحة الأرقام.',
+      helpTx: 'اختر سحب، رصيد، إيداع، أو كشف مصغر.',
+      helpAskReceipt: 'اختر نعم لطباعة الإيصال، أو لا للإنهاء.',
+      calling: 'جار الاتصال بالبنك…',
+      endCall: 'انتهت المكالمة.',
+      clear: 'مسح',
+      enter: 'تأكيد'
+    }
+  };
+
+  const elements = {
+    screen: document.getElementById('main-screen'),
+    led: document.getElementById('system-led'),
+    statusText: document.getElementById('status-message'),
+    englishBtn: document.getElementById('english-btn'),
+    arabicBtn: document.getElementById('arabic-btn'),
+    pinPad: document.getElementById('pin-entry-pad'),
+    cardSlot: document.getElementById('card-insertion-slot'),
+    animatedCard: document.getElementById('animated-card'),
+    nfcPad: document.getElementById('nfc-touch-pad'),
+    fingerScanner: document.getElementById('fingerprint-scanner'),
+    cashDispenser: document.getElementById('cash-dispenser'),
+    dispensedCash: document.getElementById('dispensed-cash'),
+    receiptDispenser: document.getElementById('receipt-dispenser'),
+    printedReceipt: document.getElementById('printed-receipt'),
+    receiptText: document.getElementById('receipt-text'),
+    cardLabel: document.getElementById('card-label'),
+    nfcLabel: document.getElementById('nfc-label'),
+    biometricLabel: document.getElementById('biometric-label'),
+    pinLabel: document.getElementById('pin-label'),
+    receiptLabel: document.getElementById('receipt-label'),
+    cashLabel: document.getElementById('cash-label'),
+    reportBtn: document.getElementById('report-issue-btn'),
+    helpBtn: document.getElementById('help-btn'),
+    callBtn: document.getElementById('call-bank-btn'),
+    callModal: document.getElementById('call-modal'),
+    endCallBtn: document.getElementById('end-call-btn'),
+    modalTitle: document.getElementById('call-modal-title'),
+    modalMessage: document.getElementById('call-modal-message')
+  };
+
+  //elements.englishBtn.onclick = () => changeLanguage('en');
+  //elements.arabicBtn.onclick = () => changeLanguage('ar');
+  elements.reportBtn.onclick = () => {
+    alert(applicationState.currentLanguage === 'en' 
+      ? 'Issue reported. Thank you.' 
+      : 'تم الإبلاغ عن المشكلة. شكراً لك');
+    initializeSystem();
+  };
+
+  elements.helpBtn.onclick = () => {
+    let helpMessage = translations[applicationState.currentLanguage].helpLang;
+    switch(applicationState.currentPhase) {
+      case 'auth': helpMessage = translations[applicationState.currentLanguage].helpAuth; break;
+      case 'pin': helpMessage = translations[applicationState.currentLanguage].helpPin; break;
+      case 'tx': helpMessage = translations[applicationState.currentLanguage].helpTx; break;
+      case 'askReceipt': helpMessage = translations[applicationState.currentLanguage].helpAskReceipt; break;
+      case 'done': helpMessage = translations[applicationState.currentLanguage].done; break;
+    }
+    alert(helpMessage);
+  };
+
+  elements.callBtn.onclick = () => {
+    elements.modalTitle.textContent = translations[applicationState.currentLanguage].calling;
+    elements.modalMessage.textContent = '';
+    elements.callModal.style.display = 'flex';
+  };
+
+  elements.endCallBtn.onclick = () => {
+    elements.callModal.style.display = 'none';
+    alert(translations[applicationState.currentLanguage].endCall);
+  };
+
+  changeLanguage('en');
+
+  function changeLanguage(languageCode) {
+    applicationState.currentLanguage = languageCode;
+    document.documentElement.lang = languageCode;
+    document.documentElement.dir = languageCode === 'ar' ? 'rtl' : 'ltr';
+    
+    elements.englishBtn.classList.toggle('active', languageCode === 'en');
+    elements.arabicBtn.classList.toggle('active', languageCode === 'ar');
+
+    updateInterfaceLabels();
+    buildPinKeypad();
+    initializeSystem();
+  }
+
+  function updateInterfaceLabels() {
+    const lang = applicationState.currentLanguage;
+   // elements.statusText.textContent = translations[lang].ready;
+    elements.cardLabel.textContent = translations[lang].cardSlot;
+    elements.nfcLabel.textContent = translations[lang].nfcPad;
+    elements.biometricLabel.textContent = translations[lang].fingerPad;
+    elements.pinLabel.textContent = translations[lang].pinPad;
+    elements.receiptLabel.textContent = translations[lang].receiptPrinter;
+    elements.cashLabel.textContent = translations[lang].cashDispenser;
+    elements.reportBtn.textContent = translations[lang].gReport;
+    elements.helpBtn.textContent = translations[lang].gHelp;
+    elements.callBtn.textContent = translations[lang].gCall;
+  }
+
+  function buildPinKeypad() {
+    const keyLayout = ['1', '2', '3', '4', '5', '6', '7', '8', '9', 'Clear', '0', 'Enter'];
+    elements.pinPad.innerHTML = '';
+    
+    keyLayout.forEach(keyValue => {
+      const keyElement = document.createElement('div');
+      keyElement.className = 'pin-key' + (keyValue === 'Clear' || keyValue === 'Enter' ? ' function-key' : '');
+      
+      if (keyValue === 'Clear') {
+        keyElement.textContent = translations[applicationState.currentLanguage].clear;
+      } else if (keyValue === 'Enter') {
+        keyElement.textContent = translations[applicationState.currentLanguage].enter;
+      } else {
+        keyElement.textContent = keyValue;
+      }
+      
+      keyElement.dataset.key = keyValue;
+      keyElement.onclick = () => processPinInput(keyValue);
+      elements.pinPad.appendChild(keyElement);
+    });
+  }
+
+  function initializeSystem() {
+    applicationState.currentPhase = 'lang';
+    applicationState.enteredPin = '';
+    applicationState.lastTransaction = null;
+    elements.led.style.background = 'var(--led-inactive)';
+    resetHardwareOutputs();
+    displayLanguageSelection();
+  }
+
+  function displayLanguageSelection() {
+    const lang = translations[applicationState.currentLanguage];
+    elements.screen.innerHTML = `
+    <div class="screen-center">
+      <h2 class="screen-title">${lang.selectLang}</h2>
+      
+      <div class="option-grid">
+        <div class="option-tile" id="select-english">English</div>
+        <div class="option-tile" id="select-arabic">العربية</div>
+      </div>
+            </div>
+
+    `;
+    //<p class="screen-subtitle">${lang.startPrompt}</p>
+    document.getElementById('select-english').onclick = () => {
+      changeLanguage('en');
+      displayAuthenticationOptions();
+    };
+    
+    document.getElementById('select-arabic').onclick = () => {
+      changeLanguage('ar');
+      displayAuthenticationOptions();
+    };
+  }
+
+  function displayAuthenticationOptions() {
+    applicationState.currentPhase = 'auth';
+    const lang = translations[applicationState.currentLanguage];
+    
+    elements.screen.innerHTML = `
+      <h2 class="screen-title">${lang.welcome}</h2>
+      <p class="screen-subtitle">${lang.chooseAuth}</p>
+      <div class="option-grid">
+        <div class="option-tile" id="auth-card-option">${lang.card}</div>
+        <div class="option-tile" id="auth-nfc-option">${lang.phone}</div>
+        <div class="option-tile" id="auth-finger-option">${lang.finger}</div>
+      </div>
+      <div class="navigation-bar">
+        <div class="action-button" id="back-to-lang">${lang.back}</div>
+      </div>
+    `;
+    
+    document.getElementById('auth-card-option').onclick = () => {
+      animateCardInsertion();
+      handleAuthenticationSuccess();
+    };
+    
+    document.getElementById('auth-nfc-option').onclick = () => {
+      animateMobileDevice();
+      handleAuthenticationSuccess();
+    };
+    
+    document.getElementById('auth-finger-option').onclick = () => {
+      animateFingerprint();
+      handleAuthenticationSuccess();
+    };
+    
+    document.getElementById('back-to-lang').onclick = initializeSystem;
+  }
+
+  function animateCardInsertion() {
+    elements.animatedCard.style.display = 'block';
+    elements.animatedCard.style.top = '-72px';
+    elements.animatedCard.style.transition = 'top .7s ease';
+    
+    setTimeout(() => { elements.animatedCard.style.top = '0px'; }, 80);
+    setTimeout(() => { elements.animatedCard.style.top = '18px'; }, 700);
+    setTimeout(() => { elements.animatedCard.style.display = 'none'; }, 1200);
+  }
+
+  function animateMobileDevice() {
+    const phoneVisual = document.createElement('div');
+    phoneVisual.className = 'mobile-device';
+    elements.nfcPad.parentElement.appendChild(phoneVisual);
+    
+    phoneVisual.style.display = 'block';
+    phoneVisual.style.transition = 'top .6s ease';
+    phoneVisual.style.top = '-72px';
+    
+    setTimeout(() => { phoneVisual.style.top = '0px'; }, 60);
+    setTimeout(() => { phoneVisual.remove(); }, 1400);
+  }
+
+  function animateFingerprint() {
+    const fingerprintVisual = document.createElement('div');
+    fingerprintVisual.className = 'fingerprint-visual';
+    elements.fingerScanner.parentElement.appendChild(fingerprintVisual);
+    
+    fingerprintVisual.style.display = 'block';
+    fingerprintVisual.style.transition = 'top .5s ease';
+    fingerprintVisual.style.top = '-72px';
+    
+    setTimeout(() => { fingerprintVisual.style.top = '0px'; }, 60);
+    setTimeout(() => { fingerprintVisual.remove(); }, 1300);
+  }
+
+  function handleAuthenticationSuccess() {
+    elements.led.style.background = 'var(--led-active)';
+    displayPinEntry();
+  }
+
+function processPinInput(keyValue) {
+  if (applicationState.currentPhase !== 'pin') return;
+
+  if (keyValue === 'Clear') {
+    applicationState.enteredPin = '';
+    updatePinDisplay();
+    return;
+  }
+
+  if (keyValue === 'Enter') {
+    if (applicationState.enteredPin.length === 4) {
+      displayTransactionMenu();
+    } else {
+      alert(translations[applicationState.currentLanguage].invalidPin);
+      applicationState.enteredPin = '';
+      updatePinDisplay();
+    }
+    return;
+  }
+
+  if (/^\d$/.test(keyValue)) {
+    if (applicationState.enteredPin.length < 4) {
+      applicationState.enteredPin += keyValue;
+      updatePinDisplay();
+    }
+  }
+}
+
+
+  function displayPinEntry() {
+    applicationState.currentPhase = 'pin';
+    applicationState.enteredPin = '';
+    const lang = translations[applicationState.currentLanguage];
+    
+    elements.screen.innerHTML = `
+      <h2 class="screen-title">${lang.enterPin}</h2>
+      <p class="screen-subtitle">${lang.pinHint}</p>
+      <div class="option-tile" style="letter-spacing:6px; font-size:18px;" id="pin-display"></div>
+      <div class="navigation-bar">
+        <div class="action-button" id="back-to-auth">${lang.back}</div>
+      </div>
+    `;
+    
+    updatePinDisplay();
+    document.getElementById('back-to-auth').onclick = displayAuthenticationOptions;
+  }
+
+  function updatePinDisplay() {
+    const maskedPin = '•'.repeat(applicationState.enteredPin.length);
+    const pinDisplayElement = document.getElementById('pin-display');
+    if (pinDisplayElement) {
+      pinDisplayElement.textContent = maskedPin;
+    }
+  }
+
+  function displayTransactionMenu() {
+    applicationState.currentPhase = 'tx';
+    const lang = translations[applicationState.currentLanguage];
+    
+    elements.screen.innerHTML = `
+      <h2 class="screen-title">${lang.txMenu}</h2>
+      <div class="option-grid">
+        <div class="option-tile" id="transaction-withdraw">${lang.withdraw}</div>
+        <div class="option-tile" id="transaction-balance">${lang.balance}</div>
+        <div class="option-tile" id="transaction-deposit">${lang.deposit}</div>
+        <div class="option-tile" id="transaction-mini">${lang.mini}</div>
+      </div>
+      <div class="navigation-bar">
+        <div class="action-button" id="back-to-pin">${lang.end}</div>
+      </div>
+    `;
+    
+    document.getElementById('transaction-withdraw').onclick = displayAmountSelection;
+    document.getElementById('transaction-balance').onclick = displayBalanceInquiry;
+    document.getElementById('transaction-deposit').onclick = processDepositTransaction;
+    document.getElementById('transaction-mini').onclick = processMiniStatement;
+    document.getElementById('back-to-pin').onclick = () => {
+  initializeSystem();
+};
+
+  }
+
+  function displayAmountSelection() {
+    const withdrawalAmounts = [10, 20, 50, 100];
+    const lang = translations[applicationState.currentLanguage];
+    
+    elements.screen.innerHTML = `
+      <h2 class="screen-title">${lang.amountPrompt}</h2>
+      <div class="option-grid">
+        ${withdrawalAmounts.map(amount => 
+          `<div class="option-tile withdrawal-amount" data-amount="${amount}">${amount} ${lang.kd}</div>`
+        ).join('')}
+        <div class="option-tile" id="custom-amount">${lang.custom}</div>
+      </div>
+      <p class="screen-subtitle">${lang.max}</p>
+      <div class="navigation-bar">
+        <div class="action-button" id="back-to-transactions">${lang.back}</div>
+      </div>
+    `;
+    
+    Array.from(elements.screen.querySelectorAll('.withdrawal-amount')).forEach(button => {
+      button.onclick = () => executeWithdrawal(Number(button.dataset.amount));
+    });
+    
+    document.getElementById('custom-amount').onclick = () => {
+      const promptMessage = applicationState.currentLanguage === 'en' 
+        ? 'Enter amount (max 3000 KD)' 
+        : 'أدخل المبلغ (حد أقصى 3000 د.ك)';
+      const userInput = prompt(promptMessage);
+      const amount = Number(userInput);
+      
+      if (!isNaN(amount) && amount > 0 && amount <= 3000) {
+        executeWithdrawal(amount);
+      } else {
+        alert(applicationState.currentLanguage === 'en' ? 'Invalid amount' : 'مبلغ غير صالح');
+      }
+    };
+    
+    document.getElementById('back-to-transactions').onclick = displayTransactionMenu;
+  }
+
+  function executeWithdrawal(amount) {
+    applicationState.lastTransaction = { type: 'withdraw', amount: amount };
+    elements.statusText.textContent = translations[applicationState.currentLanguage].ejectCash;
+    elements.cashDispenser.classList.add('active');
+    elements.dispensedCash.style.height = '116px';
+    
+    setTimeout(() => {
+      elements.cashDispenser.classList.remove('active');
+      elements.dispensedCash.style.height = '0px';
+      displayReceiptPrompt();
+    }, 1700);
+  }
+
+ function displayReceiptPrompt() {
+  applicationState.currentPhase = 'askReceipt';
+  const lang = translations[applicationState.currentLanguage];
+  
+  elements.screen.innerHTML = `
+    <h2 class="screen-title">${lang.askReceipt}</h2>
+    <div class="option-grid">
+      <div class="option-tile" id="receipt-yes">${lang.yes}</div>
+      <div class="option-tile" id="receipt-no">${lang.no}</div>
+    </div>
+  `;
+  
+  document.getElementById('receipt-yes').onclick = generateReceiptAndFinish;
+  document.getElementById('receipt-no').onclick = displayCompletionMessage;
+}
+
+
+  function generateReceiptAndFinish() {
+    const lang = translations[applicationState.currentLanguage];
+    elements.statusText.textContent = lang.ejectReceipt;
+    elements.receiptDispenser.classList.add('active');
+    
+    const currentDateTime = new Date();
+    elements.receiptText.innerHTML = `
+      <div>
+        KUWAIT BANK<br/>Bank Branch<br/>--------------------<br/>
+        Date: ${currentDateTime.toLocaleDateString()} ${currentDateTime.toLocaleTimeString()}<br/>
+        Txn: ${applicationState.lastTransaction?.type || 'withdraw'}<br/>
+        Amount: ${applicationState.lastTransaction?.amount ? applicationState.lastTransaction.amount + ' ' + lang.kd : '—'}<br/>
+        Card: **** **** **** 1234<br/>Ref: ----123<br/>--------------------<br/>Thank you
+      </div>
+    `;
+    
+    elements.printedReceipt.style.height = '180px';
+    
+    setTimeout(() => {
+      elements.printedReceipt.style.height = '0px';
+      elements.receiptDispenser.classList.remove('active');
+      displayCompletionMessage();
+    }, 1900);
+  }
+
+  function displayBalanceInquiry() {
+    applicationState.lastTransaction = { type: 'balance' };
+    const lang = translations[applicationState.currentLanguage];
+    
+    elements.screen.innerHTML = `
+      <h2 class="screen-title">${lang.balance}</h2>
+      <p class="screen-subtitle">${lang.available}: 520 ${lang.kd}</p>
+      <div class="navigation-bar">
+        <div class="action-button" id="back-to-transactions">${lang.back}</div>
+        <div class="action-button" id="end-session">${lang.end}</div>
+        <div class="action-button" id="print-receipt">${lang.receiptBtn}</div>
+      </div>
+    `;
+    
+    document.getElementById('back-to-transactions').onclick = displayTransactionMenu;
+    document.getElementById('end-session').onclick = displayCompletionMessage;
+    document.getElementById('print-receipt').onclick = generateGenericReceiptAndFinish;
+  }
+
+function processDepositTransaction() {
+  applicationState.lastTransaction = { type: 'deposit' };
+  const lang = translations[applicationState.currentLanguage];
+  
+  elements.screen.innerHTML = `
+    <h2 class="screen-title">${lang.deposit}</h2>
+    <p class="screen-subtitle">${lang.depositHint}</p>
+    <div class="navigation-bar">
+      <div class="action-button" id="end-session">${lang.end}</div>
+      <div class="action-button" id="print-receipt">${lang.receiptBtn}</div>
+    </div>
+  `;
+  
+  elements.cashDispenser.classList.add('active');
+  elements.dispensedCash.style.height = '116px';
+  
+  setTimeout(() => {
+    elements.dispensedCash.style.height = '0px';
+    elements.cashDispenser.classList.remove('active');
+  }, 1600);
+  
+  document.getElementById('end-session').onclick = displayCompletionMessage;
+  document.getElementById('print-receipt').onclick = generateGenericReceiptAndFinish;
+}
+
+
+  function processMiniStatement() {
+    applicationState.lastTransaction = { type: 'mini' };
+    const lang = translations[applicationState.currentLanguage];
+    
+    elements.screen.innerHTML = `
+      <h2 class="screen-title">${lang.mini}</h2>
+      <p class="screen-subtitle">${applicationState.currentLanguage === 'en' 
+        ? 'Preparing mini statement...' 
+        : 'جاري إعداد الكشف المصغر...'}</p>
+      <div class="navigation-bar">
+        <div class="action-button" id="back-to-transactions">${lang.back}</div>
+        <div class="action-button" id="end-session">${lang.end}</div>
+        <div class="action-button" id="print-receipt">${lang.receiptBtn}</div>
+      </div>
+    `;
+    
+    document.getElementById('back-to-transactions').onclick = displayTransactionMenu;
+    document.getElementById('end-session').onclick = displayCompletionMessage;
+    document.getElementById('print-receipt').onclick = generateGenericReceiptAndFinish;
+  }
+
+  function generateGenericReceiptAndFinish() {
+    const lang = translations[applicationState.currentLanguage];
+    elements.statusText.textContent = lang.ejectReceipt;
+    elements.receiptDispenser.classList.add('active');
+    
+    const currentDateTime = new Date();
+    elements.receiptText.innerHTML = `
+      <div>
+        KUWAIT BANK<br/>Bank Branch<br/>--------------------<br/>
+        Date: ${currentDateTime.toLocaleDateString()} ${currentDateTime.toLocaleTimeString()}<br/>
+        Txn: ${applicationState.lastTransaction?.type || '—'}<br/>
+        Amount: ${applicationState.lastTransaction?.amount ? applicationState.lastTransaction.amount + ' ' + lang.kd : '—'}<br/>
+        Card: **** **** **** 1234<br/>Ref: ----123<br/>--------------------<br/>Thank you
+      </div>
+    `;
+    
+    elements.printedReceipt.style.height = '180px';
+    
+    setTimeout(() => {
+      elements.printedReceipt.style.height = '0px';
+      elements.receiptDispenser.classList.remove('active');
+      displayCompletionMessage();
+    }, 1900);
+  }
+
+  function displayCompletionMessage() {
+    applicationState.currentPhase = 'done';
+    const lang = translations[applicationState.currentLanguage];
+    
+    elements.screen.innerHTML = `
+      <h2 class="screen-title">${lang.thankYou}</h2>
+      <p class="screen-subtitle">${lang.done}</p>
+    `;
+    
+    setTimeout(() => {
+      initializeSystem();
+    }, 2500);
+  }
+
+  function resetHardwareOutputs() {
+    elements.dispensedCash.style.height = '0px';
+    elements.printedReceipt.style.height = '0px';
+    elements.cashDispenser.classList.remove('active');
+    elements.receiptDispenser.classList.remove('active');
+  }
+})();
+</script>
+</body>
+</html>
